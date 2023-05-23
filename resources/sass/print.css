@@ -1,0 +1,85 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600&display=swap');
+@page{size:A5;margin:0}
+body{width:148.5mm;margin:0}
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td,article,aside,canvas,details,embed,figure,figcaption,footer,header,hgroup,menu,nav,output,ruby,section,summary,time,mark,audio,video{margin:0;padding:0;border:0;font:inherit;font-size:100%;vertical-align:baseline}
+html{line-height:1}
+ol,ul{list-style:none}
+table{border-collapse:collapse;border-spacing:0}
+p{margin-bottom:2px}
+caption,th,td{text-align:left;font-weight:400;vertical-align:middle}
+q,blockquote{quotes:none}
+q:before,q:after,blockquote:before,blockquote:after{content:"";content:none}
+a img{border:none}
+article,aside,details,figcaption,figure,footer,header,hgroup,main,menu,nav,section,summary{display:block}
+body{font-family: 'Montserrat', sans-serif;font-weight:300;font-size:10px;margin:0;padding:0}
+body a{text-decoration:none;color:inherit}
+body a:hover{color:inherit;opacity:.7}
+body .container{min-width:500px;margin:0 auto;padding:5px;}
+body .clearfix:after{content:"";display:table;clear:both}
+body .left{float:left}
+body .right{float:right}
+body .helper{display:inline-block;height:100%;vertical-align:middle}
+body .no-break{page-break-inside:avoid}
+strong,b{font-weight:500}
+p{margin-bottom:15px}
+.row{display:-webkit-box;display:-ms-flexbox;display:flex;-ms-flex-wrap:wrap;flex-wrap:wrap}
+.row::after{clear:both}
+.col-2, .col-md-2{float:left;width:18%;padding-right:1%;padding-left:1%}
+.col-3, .col-md-3{float:left;width:23%;padding-right:1%;padding-left:1%}
+.col-4, .col-md-4{float:left;width:31%;padding-right:1%;padding-left:1%}
+.col-5, .col-md-5{float:left;width:38%;padding-right:1%;padding-left:1%}
+.col-6, .col-md-6{float:left;width:48%;padding-right:1%;padding-left:1%}
+.col-7, .col-md-7{float:left;width:56%;padding-right:1%;padding-left:1%}
+.col-8, .col-md-8{float:left;width:65%;padding-right:1%;padding-left:1%}
+.col-9, .col-md-9{float:left;width:73%;padding-right:1%;padding-left:1%}
+p{margin-bottom:15px;letter-spacing:.5px; font-size: 10px;}
+p.float-right{float: right;font-weight: 500;}
+header{margin-top:20px;margin-bottom:10px; height: 45px; border-bottom:1px solid #ccc}
+header figure{float:left;width:15%;margin-right:10px;margin-bottom:0}
+header figure img{width:100%;position: relative; top: -15px;}
+header .company-address{float:left;line-height:1;width:82%; top: -20px !important;}
+header .company-address .title{color:#000;font-weight:600;font-size:2.25em;text-transform:uppercase;text-align:center;margin-top:5px;margin-bottom:15px;}
+header .company-address ul{margin:auto;padding:0;text-align: center;}
+header .company-address li{display:inline-block;margin-right:6px;}
+header .company-address li span{position: relative; top: -3px;}
+header .company-address li img.social{width:12px;position: relative;top: 2px;}
+header .company-contact{float:right;height:60px;padding:10px}
+header .company-contact span{display:inline-block;vertical-align:middle}
+header .company-contact .circle{width:20px;height:20px;border-radius:50%;text-align:center}
+header .company-contact .circle img{vertical-align:middle}
+header .company-contact .phone em,header .company-contact .email em{font-weight:700;text-decoration:none}
+section.bodybox .introbox{margin-bottom:15px;text-align:left}
+section.bodybox .introbox h2{margin-bottom:5px;text-align:center;text-transform:uppercase;font-weight:700;letter-spacing:1px;position: relative; top: -10px;}
+section.bodybox .introbox b{margin-right:10px;text-transform:uppercase;}
+section.bodybox .introbox .subtitle{font-weight:700;letter-spacing:.5px;margin-bottom:15px}
+section.bodybox .bottom-bordered{border-bottom:1px dashed #e4e4e4}
+section.bodybox .introbox .signbox{text-align:right}
+section.bodybox .introbox .signbox p{text-transform:uppercase;font-weight:600;margin-top:60px;margin-right:15px}
+.hline{border-width:1px;border-color:#666;margin-top:0}
+section table{width:100%;border-collapse:collapse;border-spacing:0;font-size:.9166em;border: 1px solid #e4e4e4;}
+section table thead{display:table-header-group;vertical-align:middle;border-color:inherit}
+section table thead th{padding:5px 10px;border-bottom:1px solid #e4e4e4;border-right:1px solid #e4e4e4;text-align:left;font-weight:600;text-transform:uppercase}
+section table thead .first-no{width:25px;}
+section table thead th:last-child{border-right:none}
+section table thead .desc{text-align:left}
+section table thead .qty{text-align:center}
+section table tbody td{padding:7px 5px;background:#FEFEFE;color:#000;text-align:left;border-bottom:1px solid #e4e4e4;border-right:1px solid #e4e4e4; font-size: 11px !important;}
+section table tbody td:last-child{border-right:none}
+section table tbody h3{margin-bottom:5px;color:#000;font-weight:500;font-size:14px}
+section table tbody .desc{text-align:left}
+section table tbody .qty{text-align:center}
+section table.grand-total td{padding:5px 10px;border:none;color:#000;border-bottom:1px solid #f4f4f4;text-align:right}
+section table.grand-total .desc{background-color:transparent}
+section table.grand-total tr:last-child td{color:#000;font-size:1.1818181818182em}
+footer{margin-bottom:15px;margin-top:30px; position: absolute; bottom: 0px;width:145.5mm;}
+footer .thanks{margin-bottom:0;color:#000;font-size:9px;text-align:center;border-top:1px solid #e4e4e4;padding-top:10px}
+section table tfoot{border-top: 2px solid #ccc;}
+section table tfoot .unit{font-weight: 600; text-align: right; padding: 10px;}
+section table .sno{width: 75px;}
+section table .total{width: 80px; text-align: right; padding: 7px 5px;}
+small.float-right{display: block; text-align: right;}
+p.sign{display: block;text-align: right;}
+.m-0{margin: 0px;}
+.print-img{width:175px;}
+.introbox h2 span{font-size: 14px;}
+.introbox h2 p{font-size: 12px;}

@@ -1,0 +1,243 @@
+<template>
+    <div>
+        <div class="content-header">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><router-link to="/doctors">Home</router-link></li>
+                <li class="breadcrumb-item">Appointments</li>
+                <li class="breadcrumb-item active">View</li>
+            </ol>
+        </div>
+         <div class="content">
+            <div class="container-fluid">
+                <div class="form-group">
+                    <div class="button-group">
+                        <router-link class="btn btn-sm btn-primary" :to="'/appointments/view/'+invoice.appointment_id">View Appointment </router-link>
+                        <router-link class="btn btn-sm btn-success" :to="'/appointments/print-perscription/'+invoice.appointment_id">Print Prescription</router-link>
+                        <router-link class="btn btn-sm btn-danger" :to="'/appointments/print-pharmacy-invoice/'+appointment.pinvoice" v-if="appointment.pinvoice">Print Pharmacy Invoice </router-link>
+                        <router-link class="btn btn-sm btn-green-theme-outline" to="/appointments/day-schedule">Todays Appointment </router-link>
+                        <router-link class="btn btn-sm btn-outline-primary" :to="'/appointments/upcoming-list/'+currentYear">Upcoming Appointments </router-link>
+                        <router-link class="btn btn-sm btn-outline-secondary" :to="'/appointments/history/'+currentYear">History </router-link>
+                        <span class="float-right">
+                            <button class="btn btn-sm btn-dark-theme" @click="printpage"><i class="fas fa-print"></i> Take Print Now</button>
+                        </span>
+                    </div>
+                </div>
+                <hr>
+                <div class="container text-center p-b-25">
+                            <div id="printDiv">
+                                <header class="clearfix">
+                                    <div class="container">
+                                        <figure>
+                                            <img class="logo" :src="imgurl+'big-logo.png'" alt="">
+                                        </figure>
+                                        <div class="company-address">
+                                            <h2 class="title">{{  profile.company_name }}</h2>
+                                            <ul>
+                                                <li class="text-left">
+                                                    <img class="social" :src="imgurl+'domain.png'" alt=""> www.srisritattva.me </li>
+                                                <li class="text-right">
+                                                    <img class="social" :src="imgurl+'facebook.png'" alt=""> @srisritattvaoman </li>
+                                                <li class="text-right">
+                                                    <img class="social" :src="imgurl+'twitter.png'" alt=""> @sstattvaoman </li>
+                                            </ul>
+                                        </div>
+
+                                    </div>
+                                </header>
+
+                                <section class="bodybox">
+                                    <div class="container introbox">
+                                        <h2>
+                                            <span v-if="appointment.appointment_type_id == 1">Consultation Receipt </span>
+                                            <span v-else-if="appointment.appointment_type_id == 2">Therapy Receipt </span>
+                                            <small class="float-right"> <small> Against Invoice: {{ invoice.invoice_number }} </small></small>
+                                        </h2>
+                                        <br>
+                                        <div class="row">
+                                            <div class="col-4">
+                                                <p class="bottom-bordered">
+                                                    <b>PATIENT ID :</b> {{ customer.username }}
+                                                </p>
+                                            </div>
+                                            <div class="col-4 text-center">
+                                                <p class="bottom-bordered">
+                                                    <b>NAME :</b> {{ customer.first_name | capitalize }} {{ customer.last_name | capitalize }}
+                                                </p>
+                                            </div>
+                                            <div class="col-4 text-right">
+                                                <p class="bottom-bordered">
+                                                    <b>AGE :</b> {{ getAge(customer.date_of_birth) }}
+                                                    <span v-if="customer.gender == 1"> (Male) </span>
+                                                    <span v-else-if="customer.gender == 2"> (Female) </span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-4">
+                                                <p class="bottom-bordered m-0">
+                                                    <b>REFERENCE :</b> {{ appointment.doctor | capitalize}}
+                                                </p>
+                                            </div>
+                                            <div class="col-4 text-center">
+                                                <p class="bottom-bordered m-0" v-if="invoice.insurance_id == 1">
+                                                    <b>Paid BY : Cash</b>
+                                                </p>
+                                                <p class="bottom-bordered m-0" v-else>
+                                                    <b>Insured BY : {{ customer.insurancer | capitalize}}</b>
+                                                </p>
+                                            </div>
+                                            <div class="col-4 text-right">
+                                                <p class="bottom-bordered m-0">
+                                                    <b>DATE : {{ appointment.date | setdate }} TIME</b>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <hr class="hline">
+                                        <table class="table table-bordered table-striped text-left">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width:70px">SNo</th>
+                                                    <th class="desc">PARTICULARS</th>
+                                                    <th class="total">AMOUNT</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>1</td>
+                                                    <td class="desc">{{ appointment.reason }}</td>
+                                                    <td class="total" v-if="invoice.hidediscount">{{ (invoice.amount - invoice.ins_disc_value) | formatOMR }}</td>
+                                                    <td class="total" v-else>{{ invoice.amount | formatOMR }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                        <div class="no-break">
+                                            <table class="grand-total">
+                                                <tbody>
+                                                    <tr>
+                                                        <td class="unit"><b>SUBTOTAL </b>:</td>
+                                                        <td class="total" v-if="invoice.hidediscount">{{ (invoice.amount - invoice.ins_disc_value) | formatOMR }}</td>
+                                                        <td class="total" v-else>{{ invoice.amount | formatOMR }}</td>
+                                                    </tr>
+                                                    <tr v-show="invoice.bliss_discount_value">
+                                                       <td class="unit">{{ invoice.bliss_discount }}:</td>
+                                                        <td class="total"> {{ invoice.bliss_discount_value | formatOMR }}</td>
+                                                    </tr>
+                                                    <tr v-show="(invoice.ins_disc_value) && (invoice.hidediscount != 1)">
+                                                       <td class="unit"><b>Insurance Company Discount </b>:</td>
+                                                        <td class="total"> {{ invoice.ins_disc_value | formatOMR }}</td>
+                                                    </tr>
+                                                    <tr style="font-weight: 600; color: #333; font-size: 1.18em;">
+                                                        <td class="unit"><b>Paid By Customer </b>:</td>
+                                                        <td class="total"> {{ invoice.payable_amount | formatOMR }}</td>
+                                                    </tr>
+                                                    <tr v-show="invoice.inc_deduction_value">
+                                                       <td class="unit"><b>Payable By Insurance Company </b>:</td>
+                                                        <td class="total"> {{ invoice.inc_deduction_value | formatOMR }}</td>
+                                                    </tr>
+
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </section>
+                                <section>
+                                    <div style="padding:15px">
+                                        <div>
+                                            <div class="text-left"><strong>PAYMENT DETAILS</strong> (Paid By Customer)</div>
+                                            <div class="notice text-left">
+                                                <div class="pay"><span>Payment Method:</span> {{ invoice.payment_mode }}</div>
+                                                <div class="pay"><span>Payment Date:</span> {{ invoice.created | setdate }}</div>
+                                                <div class="pay"><span>Txn No:</span> {{ invoice.txn_id }}</div>
+                                            </div>
+                                        </div>
+                                        <div class=" text-right">
+                                            <p class="sign">Authorised Signatory</p>
+                                        </div>
+                                    </div>
+                                </section>
+                                <footer>
+                                    <div class="container clearfix">
+                                        <p class="thanks">
+                                            Location : Way No. 4113, Villa No. 1109, Near Al-Maha Filling Station, Al Khuwair<br>
+                                            Address: P.O. Box No. 495, Mina Al Fahal, Postal Code : 116, Sultanate of Oman C.R.No. 1063139<br>
+                                            Contact: Tel : 24480874, 24484991, Fax : 24480874, email : ssaadmin@mosaic.om
+                                        </p>
+                                    </div>
+                                </footer>
+
+
+                            </div>
+                        </div>
+            </div>
+        </div>
+    </div>
+</template>
+<script>
+import moment from 'moment';
+    export default {
+        data() {
+            return {
+                svgurl: '/svg/',
+                docurl: '/files/docs/',
+                imgurl: '/images/',
+                editmode: false,
+                catchmessage: '',
+                currentYear: new Date().getFullYear(),
+                activeID: this.$route.params.id,
+                active_location: '',
+                appointment:'',
+                listSlots: [],
+                customer: {},
+                medicines:[],
+                profile:'',
+                invoice:''
+            }
+        },
+        methods: {
+            getIndex(list, id) {
+                return list;
+            },
+            printpage() {
+                this.$htmlToPaper('printDiv');
+            },
+            getProfile() {
+                axios.get('/api/get-profile')
+                    .then(response => {
+                        this.profile = response.data;
+                    });
+            },
+            getInvoice() {
+                this.$Progress.start();
+                axios.get('/api/invoices/view/'+this.$route.params.id).then(({ data }) => {
+                    this.invoice = data;
+                    axios.get('/api/appointments/view/'+data.appointment_id).then(({ data }) => {
+                        this.appointment = data[0];
+                        axios.get('/api/customers/'+data[0].user_id)
+                            .then((data) => {this.customer = data.data[0] })
+                            .catch();
+                    });
+                    this.$Progress.finish();
+                });
+            },
+            getAge(date) {
+                let today = new Date();
+                let ndate = new Date(date);
+                var a = moment([today.getFullYear(), today.getMonth(), today.getDate()]);
+                var b = moment([ndate.getFullYear(), ndate.getMonth(), ndate.getDate()]);
+                var diffDuration = moment.duration(a.diff(b));
+                return diffDuration.years()+' yrs';
+            },
+            makeNumber(val) {
+                if(isNaN(val)) { return 0; }
+                else { return parseFloat(val); }
+            },
+
+        },
+        created() {
+            this.getInvoice();
+            this.getProfile();
+
+        }
+
+    }
+</script>

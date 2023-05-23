@@ -1,0 +1,1027 @@
+<template>
+    <div>
+        <div class="custom-calendar">
+            <div class="cal-head row">
+                <div class="col-md-3">
+                    <div class="btn-group" v-if="viewType == 'day'">
+                        <button type="button" @click="movePreviousDay" class="btn btn-sm btn-outline-purple">Back</button>
+                        <button type="button" @click="moveThisDay" class="btn btn-sm" v-bind:class="[(actDate == 'today') ? 'btn-purple' : 'btn-outline-purple']">Today</button>
+                        <button type="button" @click="moveNextDay" class="btn btn-sm btn-outline-purple">Next</button>
+                    </div>
+                    <div class="btn-group" v-else>
+                        <button type="button" @click="movePreviousMonth" class="btn btn-sm btn-outline-purple">Back</button>
+                        <button type="button" @click="moveThisMonth" class="btn btn-sm" v-bind:class="[(actDate == 'today') ? 'btn-purple' : 'btn-outline-purple']">Today</button>
+                        <button type="button" @click="moveNextMonth" class="btn btn-sm btn-outline-purple">Next</button>
+                    </div>
+                </div>
+                <div class="col-md-6 text-center">
+                    <div v-if="viewType == 'day'">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>{{ activeFullDate | titledate }}</h5>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="btn-group">
+                                    <button type="button" @click="changeDoctorView()" class="btn btn-sm" v-bind:class="[(drView == 'doctor') ? 'btn-purple' : 'btn-outline-purple']">Doctor slots</button>
+                                    <button type="button" @click="changeDoctorView()" class="btn btn-sm" v-bind:class="[(drView == 'therapist') ? 'btn-purple' : 'btn-outline-purple']">Therapist slots</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else>
+                        <h5>{{ header.label }}</h5>
+                    </div>
+                </div>
+                <div class="col-md-3 text-right">
+                    <div class="btn-group">
+                        <button type="button" @click="changeView('month')" class="btn btn-sm" v-bind:class="[(viewType == 'month') ? 'btn-purple' : 'btn-outline-purple']">Month</button>
+                        <button type="button" @click="changeView('day')" class="btn btn-sm" v-bind:class="[(viewType == 'day') ? 'btn-purple' : 'btn-outline-purple']">Day</button>
+                    </div>
+                </div>
+            </div>
+            <div class="cal-body">
+                <div class="month-box" v-show="viewType == 'month'">
+                    <div class="month-header">
+                        <div class="week-box" v-for="(wname, key) in weekdayLabels" :key="key">{{ wname }}</div>
+                    </div>
+                    <div class="month-body">
+                        <div class="month-liner" v-for="(week, wkey) in weeks" :key="wkey+activeMonth">
+
+                            <div class="monthday-box" :class="[(day.label == 0) ? 'blocked-box' : ((day.isToday == true) ? 'isToday' : '' )]" v-for="day in week" :key="day.number+day.weekdayNumber+activeDate+activeMonth">
+
+                                <span class="dayno" :class="[(day.label == 0) ? 'visibility-hidden' : (day.dateString < activeDateString) ? 'text-danger' : ((day.dateString > activeDateString) ? 'text-success' : '') ]" v-show="day.label" v-bind:value="day.dateString">
+
+
+                                    <button class="add-appoint" @click="makeAppointment(day.dateString)" type="button" v-if="day.dateString > activeDateString">
+                                        {{ day.label }}
+                                    </button>
+
+                                    <button class="add-today-appoint" @click="makeAppointment(day.dateString)" type="button" v-else-if="day.dateString == activeDateString">
+                                        {{ day.label }}
+                                    </button>
+
+                                    <button class="no-appoint" disabled type="button" v-else> {{ day.label }} </button>
+
+                                    <button class="btn btn-green-theme-outline btn-sm" @click="gotoDayView(day.dateString+28800000)"> <i class="fas fa-eye"></i> </button>
+                                </span>
+                                <div class="appoint-box" v-show="day.label != 0">
+                                    <span v-b-popover.hover.bottom="mapp.appointment_code+' - '+mapp.first_name" class="active-appoint" :class="[(mapp.appointment_type_id == 2)?'bg-teal':'bg-indigo']" v-for="(mapp, mpkey) in monthlyAppointments[day.fullODate]" :key="mpkey" @click="viewAppointment(mapp.appointment_code)">{{ (mapp.appointment_type_id == 2)?'T':'C' }}</span>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="day-box" v-show="viewType == 'day'">
+                    <div class="day-header">
+                        <div class="hour-box">TimeSlots</div>
+                        <div class="desc-box" v-if="drView == 'therapist'">
+                            <div class="drheadline" :style="'width:'+100/therapists.length+'%'" v-for="(therapist, tkey) in therapists" :key="tkey">
+                                {{ therapist.name }}
+                            </div>
+                        </div>
+                        <div class="desc-box" v-else>
+                            <div class="drheadline" :class="'w-'+100/doctors.length" v-for="(doctor, dkey) in doctors" :key="dkey">
+                                {{ doctor.name }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="day-body day-content-box">
+                        <div v-if="drView == 'therapist'">
+                            <div class="day-liner" v-for="slot in timeslots" :key="slot.id">
+                                <div class="hour-box">{{ slot.time }}</div>
+                                <div class="desc-box">
+                                    <div class="drheadline" :style="'width:'+100/therapists.length+'%'" :class="[dailyAppointments[therapist.id+'-'+slot.id+'-css']]" v-for="(therapist, tkey) in therapists" :key="tkey">
+
+                                        <span class="btn-apt border-first-apt" v-if="(dailyAppointments[therapist.id+'-'+slot.id+'-type'] == 'book') && (dailyAppointments[therapist.id+'-'+slot.id+'-code'])">
+                                            <a class="text-danger" href="javascript:;" @click="viewAppointment(dailyAppointments[therapist.id+'-'+slot.id+'-code'])">{{ dailyAppointments[therapist.id+'-'+slot.id+'-code'] }}</a> ({{ dailyAppointments[therapist.id+'-'+slot.id+'-status']}})
+                                        </span>
+                                        <span class="btn-apt" v-else-if="(dailyAppointments[therapist.id+'-'+slot.id+'-type'] == 'book') && (dailyAppointments[therapist.id+'-'+slot.id+'-code1'])">
+                                            <b class="text-dark">{{ dailyAppointments[therapist.id+'-'+slot.id+'-code1'] }} - {{ dailyAppointments[therapist.id+'-'+slot.id+'-coden1'] }}</b>
+                                        </span>
+                                        <span class="btn-apt" v-else-if="(dailyAppointments[therapist.id+'-'+slot.id+'-type'] == 'book') && (dailyAppointments[therapist.id+'-'+slot.id+'-code2'])">
+                                            <b class="text-green-theme">{{ (dailyAppointments[therapist.id+'-'+slot.id+'-code2'].length >= 21) ?dailyAppointments[therapist.id+'-'+slot.id+'-code2'].substr(0, 20)+'....':dailyAppointments[therapist.id+'-'+slot.id+'-code2'] }}</b>
+                                        </span>
+
+                                        <span class="btn-apt" v-else-if="dailyAppointments[therapist.id+'-'+slot.id+'-type'] == 'block'">
+
+                                            <span v-if="dailyAppointments[therapist.id+'-'+slot.id+'-camp'] == dailyAppointments[therapist.id+'-'+(slot.id-1)+'-camp']">
+                                                &nbsp;
+                                            </span>
+                                            <span v-else>
+                                                Reason - {{ dailyAppointments[therapist.id+'-'+slot.id+'-code'] }}
+                                            </span>
+                                        </span>
+                                        <span class="btn-apt" v-else> &nbsp;</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else>
+                            <div class="day-liner" v-for="slot in timeslots" :key="slot.id">
+                                <div class="hour-box">{{ slot.time }}</div>
+                                <div class="desc-box">
+                                    <div class="drheadline" :class="['w-'+100/doctors.length, dailyAppointments[doctor.id+'-'+slot.id+'-css']]" v-for="(doctor, dkey) in doctors" :key="dkey">
+
+                                        <span class="btn-apt border-first-apt" v-if="(dailyAppointments[doctor.id+'-'+slot.id+'-type'] == 'book') && (dailyAppointments[doctor.id+'-'+slot.id+'-code'])">
+                                            <a class="text-danger" href="javascript:;" @click="viewAppointment(dailyAppointments[doctor.id+'-'+slot.id+'-code'])">{{ dailyAppointments[doctor.id+'-'+slot.id+'-code'] }}</a> ({{ dailyAppointments[doctor.id+'-'+slot.id+'-status']}})
+                                        </span>
+                                        <span class="btn-apt" v-else-if="(dailyAppointments[doctor.id+'-'+slot.id+'-type'] == 'book') && (dailyAppointments[doctor.id+'-'+slot.id+'-code1'])">
+                                            <b class="text-dark">{{ dailyAppointments[doctor.id+'-'+slot.id+'-code1'] }} - {{ dailyAppointments[doctor.id+'-'+slot.id+'-coden1'] }}</b>
+                                        </span>
+                                        <span class="btn-apt" v-else-if="(dailyAppointments[doctor.id+'-'+slot.id+'-type'] == 'book') && (dailyAppointments[doctor.id+'-'+slot.id+'-code2'])">
+                                            <b class="text-green-theme">{{ (dailyAppointments[doctor.id+'-'+slot.id+'-code2'].length >= 31) ?dailyAppointments[doctor.id+'-'+slot.id+'-code2'].substr(0, 30)+'....':dailyAppointments[doctor.id+'-'+slot.id+'-code2'] }}</b>
+                                        </span>
+
+                                        <span class="btn-apt" v-else-if="dailyAppointments[doctor.id+'-'+slot.id+'-type'] == 'block'">
+
+                                            <span v-if="dailyAppointments[doctor.id+'-'+slot.id+'-camp'] == dailyAppointments[doctor.id+'-'+(slot.id-1)+'-camp']">
+                                                &nbsp;
+                                            </span>
+                                            <span v-else>
+                                                Reason - {{ dailyAppointments[doctor.id+'-'+slot.id+'-code'] }}
+                                            </span>
+                                        </span>
+                                        <span class="btn-apt" v-else> &nbsp;</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal fullbarmodal fade" id="addApponitModal"  data-backdrop="static" data-keyboard="false" aria-labelledby="addApponitModalTitle" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <form @submit.prevent="createAppointment()">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="createAppointModalTitle">Create Appointment</h5>
+                            <span class="text-right float-right">
+                                <b class="text-uppercase m-r-5">DATE : </b> {{ appointmentFormatedDate }}
+                            </span>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="row border-bottom m-b-10 p-b-15 m-l-0 m-r-0">
+                                        <div class="col-12">
+                                            <div class="alert alert-danger font-weight-bold text-uppercase" v-show="catchmessage">
+                                                {{ catchmessage }}
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="form-group">
+                                                <label for="user_id" class="control-label">Search patient</label>
+                                                <model-select :options="customers"
+                                                            name="user_id"
+                                                            id="user_id"
+                                                            aria-required="true"
+                                                            v-model="form.user_id"
+                                                            placeholder="search patient"
+                                                            @input="onCustomerSelect" :class="{ 'is-invalid': form.errors.has('user_id') }">
+                                                </model-select>
+                                                <has-error :form="form" field="user_id"></has-error>
+                                            </div>
+                                        </div>
+                                        <div class="col-3">
+                                            <label class="control-label m-b-0">View Patient Details</label><br>
+                                            <a class="btn btn-sm btn-success  view-btn" v-if="sselected != ''" href="javascript:;" @click="viewCustomer(form.user_id)"> View</a>
+                                            <a class="btn btn-sm btn-secondary view-btn btn-block" v-else href="javascript:;"> Patient Not Selected</a>
+                                            <a class="btn btn-sm btn-dark view-btn" v-show="sselected != ''" href="javascript:;" @click="hideCustomer"> Hide</a>
+                                        </div>
+                                        <div class="col-2">
+                                            <label for="visit_type_id" class="control-label">Visit Type</label>
+                                            <select v-model="form.visit_type_id" name="visit_type_id" id="visit_type_id" class="form-control" :class="{ 'is-invalid': form.errors.has('visit_type_id') }" @change="resetFollowupCheck">
+                                                <option disabled value="">Select Visit Type</option>
+                                                <option value="1">New Visit</option>
+                                                <option value="2">Re-Visit (Free Follow Up)</option>
+                                                <option value="3">Follow Up</option>
+                                            </select>
+                                            <has-error :form="form" field="visit_type_id"></has-error>
+                                        </div>
+                                        <div class="col-3">
+                                            <span v-show="form.visit_type_id >= 2">
+                                                <label for="followup_appointment" class="control-label">Followup Appointment</label>
+                                                <div class="input-group">
+                                                    <input v-model="form.followup_appointment" type="text" name="followup_appointment" id="followup_appointment" placeholder="appointment ID"
+                                                    class="form-control" :class="{ 'is-invalid': form.errors.has('followup_appointment') }" :readonly="form.followup_verified == 1">
+                                                    <div class="input-group-append">
+                                                        <button class="btn btn-sm btn-outline-secondary" @click="checkFollowup" type="button">Verify</button>
+                                                    </div>
+                                                </div>
+                                            </span>
+                                            <i class="text-danger d-block"><b> {{ followuptext }} </b></i>
+                                        </div>
+                                    </div>
+                                    <div class="row border-bottom m-b-10 p-b-5 m-l-0 m-r-0">
+                                        <div class="col-2">
+                                            <div class="form-group">
+                                                <label for="appointment_type_id" class="control-label">Appointment type</label>
+                                                <select v-model="form.appointment_type_id" name="appointment_type_id" id="appointment_type_id" class="form-control" :class="{ 'is-invalid': form.errors.has('appointment_type_id') }">
+                                                    <option disabled value="">Select Type</option>
+                                                    <option value="1">Consultation</option>
+                                                    <option value="2">Treatment</option>
+                                                </select>
+                                                <has-error :form="form" field="appointment_type_id"></has-error>
+                                            </div>
+                                        </div>
+                                        <div class="col-3">
+                                            <span v-if="form.appointment_type_id == 1">
+                                                <label for="treatment_id" class="control-label">Consultaion</label>
+                                                <select v-model="form.treatment_id" name="treatment_id" id="treatment_id" @click="showType" class="form-control" :class="{ 'is-invalid': form.errors.has('treatment_id') }">
+                                                    <option disabled value="">Select Consultaion</option>
+                                                    <option v-for="consult in consultations" :key="consult.id" v-bind:value="consult.id">
+                                                        {{ consult.treatment }}
+                                                    </option>
+                                                </select>
+                                                <has-error :form="form" field="treatment_id"></has-error>
+                                            </span>
+                                            <span v-else-if="form.appointment_type_id == 2">
+                                                <label for="treatment_id" class="control-label">Treatments</label>
+                                                <select v-model="form.treatment_id" name="treatment_id" id="treatment_id"  @change="showType" class="form-control" :class="{ 'is-invalid': form.errors.has('treatment_id') }">
+                                                    <option disabled value="">Select Treatments</option>
+                                                    <option v-for="treatment in treatments" :key="treatment.id" v-bind:value="treatment.id">
+                                                        {{ treatment.treatment }}
+                                                    </option>
+                                                </select>
+                                                <has-error :form="form" field="treatment_id"></has-error>
+                                                <i class="d-block text-danger"> {{ gendermsg }} </i>
+                                            </span>
+                                            <span v-else>
+                                                <label for="treatment_id" class="control-label">Treatment</label>
+                                                <select v-model="form.treatment_id" name="treatment_id" id="treatment_id"  class="form-control" :class="{ 'is-invalid': form.errors.has('treatment_id') }">
+                                                    <option disabled value="">Select Appointment Type First</option>
+                                                </select>
+                                                <has-error :form="form" field="treatment_id"></has-error>
+                                            </span>
+                                        </div>
+                                        <div class="col-3">
+                                            <label class="control-label">Default Time Required</label>
+                                            <p>{{ timetaken }}</p>
+                                        </div>
+                                        <div class="col-3">
+                                            <span v-if="form.appointment_type_id == 1">
+                                                <label for="doctor_id" class="control-label">Doctors</label>
+                                                <select v-model="form.doctor_id" name="doctor_id" id="doctor_id" class="form-control" :class="{ 'is-invalid': form.errors.has('doctor_id') }" @change="getTimings(1, form.doctor_id)">
+                                                    <option disabled value="">Select Doctor</option>
+                                                    <option v-for="doctor in doctors" :key="doctor.id" v-bind:value="doctor.id">
+                                                        {{ doctor.name | capitalize }}
+                                                    </option>
+                                                </select>
+                                                <has-error :form="form" field="doctor_id"></has-error>
+                                            </span>
+                                            <span v-else-if="form.appointment_type_id == 2">
+                                                <label for="doctor_id" class="control-label">Therapists</label>
+                                                <select v-model="form.doctor_id" name="doctor_id" id="doctor_id" class="form-control" :class="{ 'is-invalid': form.errors.has('doctor_id') }" @change="getTimings(2, form.doctor_id)">
+                                                    <option disabled value="">Select Therapists</option>
+                                                    <option v-for="doctor in therapists" :key="doctor.id" v-bind:value="doctor.id">
+                                                        {{ doctor.name | capitalize }}
+                                                    </option>
+                                                </select>
+                                                <has-error :form="form" field="doctor_id"></has-error>
+                                            </span>
+                                            <span v-else>
+                                                <label for="doctor_id" class="control-label">Therapists/Doctors</label>
+                                                <select v-model="form.doctor_id" name="doctor_id" id="doctor_id" class="form-control" :class="{ 'is-invalid': form.errors.has('doctor_id') }">
+                                                    <option disabled value="">Select Appointment Type first</option>
+                                                </select>
+                                                <has-error :form="form" field="doctor_id"></has-error>
+                                            </span>
+                                        </div>
+
+                                    </div>
+                                    <div class="row border-bottom m-b-10 p-b-5 m-l-0 m-r-0">
+                                        <div class="col-3">
+                                            <label for="start_time" class="control-label">Start Time</label>
+                                            <select v-model="form.start_time" name="start_time" id="start_time" class="form-control" :class="{ 'is-invalid': form.errors.has('start_time') }" @change="getClosings(form.start_time)">
+                                                <option disabled value="">Select Start Time</option>
+                                                <option v-for="(timeslot, key) in start_times" :key="key" v-bind:value="key">
+                                                    {{ timeslot }}
+                                                </option>
+                                            </select>
+                                            <has-error :form="form" field="start_time"></has-error>
+                                        </div>
+                                        <div class="col-3">
+                                            <label for="end_time" class="control-label">End Time</label>
+                                            <select v-model="form.end_time" name="end_time" id="end_time" class="form-control" :class="{ 'is-invalid': form.errors.has('end_time') }" @change="getRooms(form.end_time)">
+                                                <option disabled value="">Select End Time</option>
+                                                <option v-for="(timeslot, key) in end_times" :key="key" v-bind:value="key">
+                                                    {{ timeslot }}
+                                                </option>
+                                            </select>
+                                            <has-error :form="form" field="end_time"></has-error>
+                                        </div>
+                                        <div class="col-3" v-show="ttype == 1">
+                                            <label  class="control-label">This is Dual Therapy</label>
+                                            <select v-model="form.second_doctor_id" name="second_doctor_id" id="second_doctor_id" class="form-control" :class="{ 'is-invalid': form.errors.has('second_doctor_id') }">
+                                                <option disabled value="">Select Therapists</option>
+                                                <option v-for="doctor in stherapists" :key="doctor.id" v-bind:value="doctor.id">
+                                                    {{ doctor.name | capitalize }}
+                                                </option>
+                                            </select>
+                                            <has-error :form="form" field="second_doctor_id"></has-error>
+                                        </div>
+                                        <div class="col-3">
+                                            <span v-show="form.appointment_type_id == 2">
+                                                <label for="room_id" class="control-label">Rooms</label>
+                                                <select v-model="form.room_id" name="room_id" id="room_id" class="form-control" :class="{ 'is-invalid': form.errors.has('room_id') }">
+                                                    <option disabled value="">Select Room</option>
+                                                    <option v-for="(room, key) in rooms" :key="key" v-bind:value="key">
+                                                        {{ room }}
+                                                    </option>
+                                                </select>
+                                                <has-error :form="form" field="room_id"></has-error>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="m-b-10 p-b-5 m-l-0 m-r-0 table-responsive" v-show="sselected">
+                                        <table class="table table-bordered table-condensed table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>SNo</th>
+                                                    <th>Appointment ID</th>
+                                                    <th>Consultaion</th>
+                                                    <th>Date</th>
+                                                    <th>Time</th>
+                                                    <th>Doctor</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="(appts, acount) in customer_appointments" :key="acount">
+                                                    <td> {{ ++acount }} </td>
+                                                    <td> {{ appts.appointment_code }} </td>
+                                                    <td> {{ appts.treatment }} </td>
+                                                    <td> {{ appts.date | setdate }} </td>
+                                                    <td> {{ appts.timeslot }} </td>
+                                                    <td> {{ appts.name | capitalize }} </td>
+                                                    <td> {{ appts.status }} </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="doc-schdular">
+                                        <div class="m-l-0 m-r-0">
+                                            <ul class="patch-list">
+                                                <li> <span class="color-patch bg-teal"></span> <label class="label-control"> Available Slot</label> </li>
+                                                <li> <span class="color-patch bg-pink"></span> <label class="label-control"> Booked Slot</label> </li>
+                                                <li> <span class="color-patch bg-opurple"></span> <label class="label-control"> Blocked Slot</label> </li>
+                                            </ul>
+                                        </div>
+                                        <div class="dbody">
+                                            <table class="table table-bordered">
+                                                <thead>
+                                                    <tr>
+                                                        <th width="100px">TimeSlots</th>
+                                                        <th>Schedule</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr v-for="slot in timeslots" :key="slot.id">
+                                                        <td>{{ slot.time }}</td>
+                                                        <td :class="[(isExist(aval_slots, slot.id)) ? 'bg-teal' : ((isExist(fixedslots, slot.id)) ? 'bg-pink' : 'bg-opurple') ]"></td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-wide btn-danger" data-dismiss="modal"> Cancel </button>
+                            <button  type="submit" class="btn btn-wide btn-success"> Create </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+         <div class="fade sidebar modal" id="userModal"  data-backdrop="static" data-keyboard="false">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="sidebar-header">
+                        <h3>Customer Details</h3>
+                        <button type="button" class="btn btn-close float-left" data-dismiss="modal"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="components">
+                        <ul class="link-list">
+                            <li><p class="alert m-0"><b>User ID</b><br>{{ customer.username }}</p></li>
+                            <li><p class="alert m-0"><b>Name</b><br>{{ customer.first_name }} {{ customer.last_name }}</p></li>
+                            <li><p class="alert m-0"><b>Email</b><br>{{ customer.email }}</p></li>
+                            <li><p class="alert m-0"><b>Contact No</b><br>{{ customer.contact_no }}</p></li>
+                            <li><p class="alert m-0"><b>City</b><br>{{ customer.city }}</p></li>
+                            <li><p class="alert m-0"><b>Address</b><br>{{ customer.address }}</p></li>
+                            <li><p class="alert m-0"><b>Joined On</b><br>{{ customer.created_at | setdate }}</p></li>
+                            <li><p class="alert m-0"><b>Identity Card</b><br>{{ customer.verification_number }}
+                                <button class="btn inacn-btn btn-success" v-if="customer.identity_verified == 1">Verified</button>
+                                <button class="btn inacn-btn btn-danger" v-else>Not Verified</button></p>
+                            </li>
+                            <li><p class="alert m-0"><b>Insurance</b><br>{{ customer.policy_number }}
+                                <button class="btn inacn-btn btn-success" v-if="customer.insurance_verified == 1">Verified</button>
+                                <button class="btn inacn-btn btn-danger" v-else>Not Verified</button></p>
+                            </li>
+                            <li><p class="alert m-0"><b>Status</b><br>{{ customer.status }}</p></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="fade sidebar modal" id="appointmentModal"  data-backdrop="static" data-keyboard="false" data-easein="slideRightBigIn" >
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="sidebar-header">
+                        <h3>Appointment Details</h3>
+                        <button type="button" class="btn btn-close float-left" data-dismiss="modal"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="components">
+                        <ul class="link-list">
+                            <li><p class="alert m-0"><b>Appointment ID</b><br>{{ appointment.appointment_code }}</p></li>
+                            <li><p class="alert m-0"><b>Appointment Type</b><br>{{ appointment.appointment_type }}</p></li>
+                            <li><p class="alert m-0"><b>Date - Timing</b><br>
+                                {{ appointment.date | setdate }}
+                                ( {{ listSlots[appointment.start_timeslot] }} - {{ clistSlots[appointment.end_timeslot] }} )
+                                </p></li>
+                            <li><p class="alert m-0"><b>Treatment</b><br>{{ appointment.reason }}</p></li>
+                            <li><p class="alert m-0"><b>Doctor/Therapist</b><br>
+                                {{ appointment.doctor }}
+                                <span v-show="appointment.second_doctor_id">
+                                    , {{ extratherapists[appointment.second_doctor_id] }}
+                                </span>
+                            </p></li>
+                            <li><p class="alert m-0"><b>Visit Type</b><br>{{ appointment.visit_type }}</p></li>
+                            <li><p class="alert m-0"><b>Patient Detail</b><br>NAME: {{ appointment.first_name }} {{ appointment.last_name }}<br>
+                                                                            Mobile: {{ appointment.mobile }}<br>
+                                                                            Address: {{ appointment.address }}<br>
+                                                                            City: {{ appointment.city }}</p></li>
+                            <li><p class="alert m-0"><b>Created By</b><br>{{ appointment.admin | capitalize }}</p></li>
+                            <li><p class="alert m-0"><b>Created On</b><br>{{ appointment.created_at | setfulldate }}</p></li>
+                            <li><p class="alert m-0"><b>Status</b><br>{{ appointment.status }}</p></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+import moment from 'moment';
+const _daysInMonths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+const _weekdayLabels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const _weekdayLength = 3;
+const _weekdayCasing = 'title';
+const _monthLabels = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const _monthLength = 0;
+const _monthCasing = 'title';
+
+// Helper function for label transformation
+const _transformLabel = (label, length, casing) => {
+  label = length <= 0 ? label : label.substring(0, length);
+  if (casing.toLowerCase() === 'lower') return label.toLowerCase();
+  if (casing.toLowerCase() === 'upper') return label.toUpperCase();
+  return label;
+};
+
+// Today's data
+const _today = new Date();
+const _todayComps = {
+  year: _today.getFullYear(),
+  month: _today.getMonth() + 1,
+  day: _today.getDate()
+};
+export default {
+    data() {
+        return {
+            today: _today,
+            weekdayLabels: _weekdayLabels,
+            viewType: 'month',
+            drView: 'doctor',
+            actDate: 'today',
+            activeDate: '',
+            activeMonth: '',
+            activeYear: '',
+            activeDateString: '',
+            activeFullDate: '',
+            title: '',
+            timeslots: '',
+            timetaken:'',
+            dayLabel:'',
+            extratherapists:'',
+            //weeks:'',
+            aval_slots:[],
+            month: _todayComps.month,
+            year: _todayComps.year,
+            ///appointment
+            catchmessage: '',
+            active_location: '',
+            appointments:'',
+            appointment:'',
+            treatments:{},
+            consultations: {},
+            doctors: {},
+            listSlots: [],
+            clistSlots: [],
+            therapists: {},
+            start_timeslots: {},
+            end_timeslots: {},
+            rooms: {},
+            customer: {},
+            customers: [],
+            //filteredOptions: [],
+            options: [],
+            sselected: '',
+            blockslots: [],
+            fixedslots: [],
+            ttype:'',
+            tdual:0,
+            listoptions: [],
+            start_times: {},
+            end_times: {},
+            stherapists: {},
+            rooms:{},
+            appointmentDate:'',
+            appointmentFormatedDate:'',
+            monthlyAppointments:'',
+            dailyAppointments:[],
+            inputProps: {
+                id: "autosuggest__input",
+                name: 'customer',
+                onInputChange: this.onInputChange,
+                placeholder: "search by mobile number / user ID / ID Card"
+            },
+            followuptext:'',
+            gendermsg:'',
+            customer_appointments: [],
+            form: new Form({
+                id:'',
+                location_id:'',
+                user_id:'',
+                room_id:'',
+                doctor_id: '',
+                appointment_type_id:'',
+                treatment_id:'',
+                second_doctor_id:'',
+                date:'',
+                start_time:'',
+                end_time:'',
+                visit_type_id:'',
+                status_id:4,
+                followup_appointment:'',
+                followup_verified:'',
+                course_id:'',
+            })
+        }
+    },
+    computed: {
+        // Our component exposes month as 1-based, but sometimes we need 0-based
+        monthIndex() {
+            return this.month - 1;
+        },
+        // State referenced by header (no dependencies yet...)
+        months() {
+            return _monthLabels.map((ml, i) => ({
+            label: _transformLabel(ml, _monthLength, _monthCasing),
+            number: i + 1,
+            }));
+        },
+        // State for weekday header (no dependencies yet...)
+        weekdays() {
+            return _weekdayLabels.map((wl, i) => {
+            return {
+                label: _transformLabel(wl, _weekdayLength, _weekdayCasing),
+                number: i + 1,
+            };
+            });
+        },
+        // State for calendar header
+        header() {
+            const month = this.months[this.monthIndex];
+            return {
+            month,
+            year: this.year.toString(),
+            shortYear: this.year.toString().substring(2, 4),
+            label: month.label + ' ' + this.year,
+            };
+        },
+        // Returns number for first weekday (1-7), starting from Sunday
+        firstWeekdayInMonth() {
+            return new Date(this.year, this.monthIndex, 1).getDay() + 1;
+        },
+        // Returns number of days in the current month
+        daysInMonth() {
+            // Check for February in a leap year
+            const isFebruary = this.month === 2;
+            const isLeapYear = (this.year % 4 == 0 && this.year % 100 != 0) || this.year % 400 == 0;
+            if (isFebruary && isLeapYear) return 29;
+            // ...Just a normal month
+            return _daysInMonths[this.monthIndex];
+        },
+        weeks() {
+            const weeks = [];
+            let monthStarted = false, monthEnded = false;
+            let monthDay = 0; let fullDate = 0; let dateString = '';
+            // Cycle through each week of the month, up to 6 total
+            for (let w = 1; w <= 6 && !monthEnded; w++) {
+            // Cycle through each weekday
+            const week = [];
+            for (let d = 1; d <= 7; d++) {
+                // We need to know when to start counting actual month days
+                if (!monthStarted && d >= this.firstWeekdayInMonth) {
+                // Initialize day counter
+                monthDay = 1;
+                // ...and flag we're tracking actual month days
+                monthStarted = true;
+                // Still in the middle of the month (hasn't ended yet)
+                } else if (monthStarted && !monthEnded) {
+                // Increment the day counter
+                monthDay += 1;
+                }
+                // Append day info for the current week
+                // Note: this might or might not be an actual month day
+                //  We don't know how the UI wants to display various days,
+                //  so we'll supply all the data we can
+
+                week.push({
+                    label: monthDay ? monthDay.toString() : '0',
+                    fullDate:  monthDay ?  monthDay+'-'+this.month+'-'+this.year : '',
+                    fullODate: monthDay ?  this.year+'-'+("0" + this.month).slice(-2)+'-'+("0" + monthDay).slice(-2) : '',
+                    number: monthDay,
+                    weekdayNumber: d,
+                    weekNumber: w,
+                    beforeMonth: !monthStarted,
+                    afterMonth: monthEnded,
+                    inMonth: monthStarted && !monthEnded,
+                    isToday: monthDay === _todayComps.day && this.month === _todayComps.month && this.year === _todayComps.year,
+                    isFirstDay: monthDay === 1,
+                    isLastDay: monthDay === this.daysInMonth,
+                    dateString: monthDay ? Date.parse(this.year+'-'+this.month+'-'+monthDay) : '',
+                });
+
+                // Trigger end of month on the last day
+                if (monthStarted && !monthEnded && monthDay >= this.daysInMonth) {
+                    monthDay = 0;
+                    monthEnded = true;
+                }
+            }
+            // Append week info for the month
+            weeks.push(week);
+            }
+            //console.log(weeks);
+            return weeks;
+        },
+    },
+        methods: {
+            setTitle(){
+                this.title = this.activeFullDate;
+            },
+            isExist(arr, cid) {
+                for (let i = 0; i < arr.length; i++) {
+                    if(cid == parseInt(arr[i])){
+                        return true;
+                    }
+                };
+                return false;
+            },
+            setDate(){
+                this.activeMonth = this.today.getMonth() + 1;
+                this.activeYear = this.today.getFullYear();
+                this.activeFullDate = this.today;
+                this.activeDate = this.activeYear +'-'+ this.activeMonth +'-'+ this.today.getDate();
+                this.activeDateString = Date.parse(this.activeDate);
+            },
+            resetFollowupCheck() {
+                this.form.followup_appointment = '';
+                this.form.followup_verified = '';
+                this.followuptext = '';
+            },
+            changeView(vtype) {
+                this.viewType = vtype;
+                this.setDate();
+                this.setTitle();
+                if(vtype == 'day'){
+                    this.setDailyAppointments();
+                }
+            },
+            changeDoctorView() {
+                if(this.drView == 'doctor') {
+                    this.drView = 'therapist';
+                } else {
+                    this.drView = 'doctor';
+                }
+            },
+            getTimeSlots(){
+                axios.get('/api/get-all-time-slots').then(({ data }) => {
+                    //console.log(data);
+                    this.timeslots = data;
+                });
+            },
+            moveThisDay() {
+                this.activeFullDate = new Date(this.today.getTime());
+                this.actDate = 'today';
+                this.setDailyAppointments();
+            },
+            moveNextDay() {
+                let day = 60 * 60 * 24 * 1000;
+                this.activeFullDate = new Date(this.activeFullDate.getTime() + day);
+
+                this.activeMonth = parseInt(this.activeFullDate.getMonth())+1;
+                this.activeYear = this.activeFullDate.getFullYear();
+                this.activeDate = this.activeYear +'-'+ this.activeMonth +'-'+ this.activeFullDate.getDate();
+
+                let todaysDate = this.today.getFullYear() +'-'+ parseInt(this.today.getMonth()+1) +'-'+ this.today.getDate();
+                let str1 = Date.parse(todaysDate);
+                let str2 = Date.parse(this.activeDate);
+                if(str1 == str2) { this.actDate = 'today';  }
+                else { this.actDate = ''; }
+                this.setDailyAppointments();
+            },
+            movePreviousDay() {
+                let day = 60 * 60 * 24 * 1000;
+                this.activeFullDate = new Date(this.activeFullDate.getTime() - day);
+
+                this.activeMonth = parseInt(this.activeFullDate.getMonth())+1;
+                this.activeYear = this.activeFullDate.getFullYear();
+                this.activeDate = this.activeYear +'-'+ this.activeMonth +'-'+ this.activeFullDate.getDate();
+
+                let todaysDate = this.today.getFullYear() +'-'+ parseInt(this.today.getMonth()+1) +'-'+ this.today.getDate();
+                let str1 = Date.parse(todaysDate);
+                let str2 = Date.parse(this.activeDate);
+                if(str1 == str2) { this.actDate = 'today';  }
+                else { this.actDate = ''; }
+                this.setDailyAppointments();
+            },
+            moveThisMonth() {
+                this.month = _todayComps.month;
+                this.year = _todayComps.year;
+                this.setMonthlyAppointments();
+            },
+            moveNextMonth() {
+                if (this.month < 12) {
+                this.month++;
+                } else {
+                this.month = 1;
+                this.year++;
+                }
+                this.setMonthlyAppointments();
+            },
+            movePreviousMonth() {
+                if (this.month > 1) {
+                this.month--;
+                } else {
+                this.month = 12;
+                this.year--;
+                }
+                this.setMonthlyAppointments();
+            },
+            setMonthlyAppointments(){
+                let date = this.year+'-'+("0" + this.month).slice(-2)+'-01';
+                axios.get('/api/get-monthly-appointments/'+date).then(({ data }) => {
+                    this.monthlyAppointments = data;
+                });
+            },
+            setDailyAppointments(){
+                let date = this.activeFullDate.getFullYear()+'-'+("0" + parseInt(this.activeFullDate.getMonth()+1)).slice(-2)+'-'+("0" + this.activeFullDate.getDate()).slice(-2);
+                axios.get('/api/get-daily-appointments/'+date).then(({ data }) => {
+                   // console.log(this.objToArray(data));
+                    this.dailyAppointments = data;
+                });
+            },
+            moveNextYear() {
+                this.year++;
+            },
+            movePreviousYear() {
+                this.year--;
+            },
+            objToArray(obj) {
+                let  arr = [];
+                for (var prop in obj) {
+                    arr.push({
+                        aid: prop,
+                        css:  obj[prop]
+                    });
+                }
+                //console.log(arr);
+            },
+            makeAppointment(datestring) {
+                this.catchmessage = '';
+                this.sselected = '';
+                this.followuptext = '';
+                this.form.reset();
+                this.blockslots = [];
+                this.fixedslots = [];
+                this.start_times = [];
+                let currenttime = new Date(datestring);
+                let dd = (currenttime.getDate() < 10 ? '0' : '') + currenttime.getDate();
+                let MM = ((currenttime.getMonth() + 1) < 10 ? '0' : '') + (currenttime.getMonth() + 1);
+                //console.log(currenttime.getHours());
+                //console.log(currenttime.getMinutes());
+                this.appointmentDate = currenttime;
+                this.appointmentFormatedDate = currenttime.getFullYear()+'-'+MM+'-'+dd;
+                this.form.date = currenttime.getFullYear()+'-'+MM+'-'+dd;
+                this.form.location_id = this.active_location;
+                //console.log(this.form.date);
+                if((currenttime.getHours() > this.listoptions['appointment_end_hour']) || ((currenttime.getHours() == this.listoptions['appointment_end_hour']) && (currenttime.getMinutes() >= 1))) {
+                    swal.fire('Ohh Time is Over', 'Appointment Booking time is over. Please make bookings in upcoming appointments or Contact Administrator for support.', 'error');
+                }
+                else if(currenttime.getHours() < this.listoptions['appointment_start_hour']){
+                    swal.fire('Wait for It', 'Appointment Booking time has not started yet. Please Contact Administrator for any support.', 'error');
+                }
+                else {
+                    $('#addApponitModal').modal('show');
+                }
+            },
+            createAppointment() {
+                if(this.form.visit_type_id >= 2) {
+                    if((this.form.followup_appointment == '') || (this.form.followup_verified != 1)) {
+                        swal.fire('Please enter Followup Appointment ID and verify it.');
+                        return false;
+                    }
+                }
+                this.form.post('/api/appointments/make-appointment')
+                .then(() => {
+                    this.$Progress.start();
+                    Fire.$emit('AfterCreate');
+                    $('#addApponitModal').modal('hide');
+                    toast.fire({
+                        type:'success',
+                        title:'Appointment created successfully.'
+                    });
+                    this.$Progress.finish();
+                })
+                .catch((response) => {
+                   // this.catchmessage = response.message;
+                   //this.flash(response.message, 'error');
+                });
+            },
+            gotoDayView(daystring) {
+                this.activeDateString = daystring;
+                this.activeFullDate = new Date(daystring);
+                this.activeMonth = parseInt(this.activeFullDate.getMonth())+1;
+                this.activeYear = this.activeFullDate.getFullYear();
+                this.activeDate = this.activeYear +'-'+ this.activeMonth +'-'+ this.activeFullDate.getDate();
+                let todaysDate = this.today.getFullYear() +'-'+ parseInt(this.today.getMonth()+1) +'-'+ this.today.getDate();
+                this.viewType = 'day';
+                let str1 = Date.parse(todaysDate);
+                let str2 = Date.parse(this.activeDate);
+                if(str1 == str2) { this.actDate = 'today';  }
+                else { this.actDate = ''; }
+                this.setDailyAppointments();
+            },
+            viewAppointment(id) {
+                axios.get('/api/appointments/view/'+id)
+                    .then((data) => {this.appointment = data.data[0] })
+                    .catch();
+                $('#appointmentModal').modal('show');
+            },
+            ////// create appointment
+
+            viewCustomer(id) {
+                if(id == ''){id = this.form.user_id}
+                axios.get('/api/customers/'+id)
+                    .then((data) => {this.customer = data.data[0] })
+                    .catch();
+                $('#userModal').modal('show');
+            },
+            hideCustomer() {
+                $('#userModal').modal('hide');
+            },
+            showType(){
+                let treat = this.form.treatment_id;
+                this.form.second_doctor_id = '';
+                axios.get('/api/treatments/'+treat).then((data) => {
+                     this.timetaken = data.data.timing+' mins';
+                    if(data.data.is_it_dual >= 1){ this.ttype = 1; this.tdual = data.data.is_it_dual;}
+                    else { this.ttype = 0; this.tdual = 0; }
+                }).catch();
+            },
+            getTimings(atype, did){
+                axios.get('/api/appointments/get-doctor-appointment-timings?q='+this.form.date+'&at='+atype+'&lid='+this.form.location_id+'&did='+did).then(({ data }) => { this.blockslots = data['blocked']; this.fixedslots = data['fixed'];  this.start_times = data['start_slots']; this.aval_slots = data['aval_slots']; });
+            },
+            getClosings(st){
+                axios.get('/api/appointments/get-end-timings?q='+this.form.date+'&at='+this.form.appointment_type_id+'&lid='+this.form.location_id+'&did='+this.form.doctor_id+'&st='+st).then(({ data }) => {
+                    this.end_times = data;
+                });
+            },
+            getRooms(et){
+                axios.get('/api/appointments/get-rooms?q='+this.form.date+'&lid='+this.form.location_id+'&st='+this.form.start_time+'&et='+et).then(({ data }) => {
+                    this.rooms = data;
+                });
+                if(this.ttype == 1){
+                   axios.get('/api/appointments/get-second-therapist?q='+this.form.date+'&lid='+this.form.location_id+'&did='+this.form.doctor_id+'&st='+this.form.start_time+'&et='+et+'&dtype='+this.tdual).then(({ data }) => {
+                    this.stherapists = data;
+                });
+                }
+            },
+            getAllAssets() {
+                axios.get('/api/getTreatmentsList').then((data) => {this.treatments = data.data }).catch();
+                axios.get('/api/getConsultationsList').then((data) => {this.consultations = data.data }).catch();
+                axios.get('/api/getOnlyDoctorsList').then((data) => {this.doctors = data.data }).catch();
+                axios.get('/api/getOnlyTherapistsList').then((data) => {this.therapists = data.data }).catch();
+                axios.get('/api/getTherapistsArrayList').then((data) => {this.extratherapists = data.data }).catch();
+                axios.get('/api/getOptionsList').then((data) => {this.listoptions = data.data }).catch();
+                axios.get('/api/getBothSlotsList').then((data) => {this.listSlots = data.data.starts; this.clistSlots = data.data.ends; }).catch();
+            },
+            getPrimaryAssets() {
+                axios.get('/api/get-active-user').then((response) => {this.active_location = response.data[0].location_id;}).catch();
+            },
+            getCustomers() {
+                axios.get('/api/getCustomerSelectList').then((data) => {  this.customers = data.data }).catch();
+            },
+            checkFollowup() {
+                if(this.form.user_id && this.form.followup_appointment) {
+                    this.followuptext = 'verifying...';
+                    axios.post('/api/check-followup', {
+                        user_id:this.form.user_id,
+                        date:this.form.date,
+                        appointment_code:this.form.followup_appointment,
+                    }).then((response) => {
+                        if(response.data.status == 1) {
+                            this.followuptext = 'Free visit applicable';
+                            this.form.visit_type_id = 2;
+                            this.form.followup_verified = 1;
+                        }
+                        else if(response.data.status == 2) {
+                            this.followuptext = 'Followup applicable (Not free visit)';
+                            this.form.visit_type_id = 3;
+                            this.form.followup_verified = 1;
+                        }
+                        else if(response.data.status == 3) {
+                            this.followuptext = 'Followup or free visit not applicable';
+                            this.form.visit_type_id = 1;
+                            this.form.followup_verified = '';
+                        }
+                        else {
+                            this.followuptext = 'Either Appointment does not exist or not valid for free re-visit.';
+                            this.form.visit_type_id = 1;
+                            this.form.followup_verified = '';
+                        }
+                    }).catch();
+                } else{
+                    this.followuptext = 'please select patient and enter followup appointment ID.';
+                }
+            },
+            onCustomerSelect(option) {
+                this.gendermsg = '';
+                axios.get('/api/customers/'+option)
+                    .then((data) => {
+                        this.sselected = data.data[0].id;
+                        this.form.user_id = data.data[0].id;
+                        this.form.mobile = data.data[0].mobile;
+                        if(data.data[0].insurance_id == 1) {
+                            this.catchmessage = 'This patient is a cash customer. Please check if he has insurance now.';
+                        }
+                        else {
+                            let today = new Date(this.form.date);
+                            let ndate = new Date(data.data[0].expiry_date);
+                            var a = moment([today.getFullYear(), today.getMonth(), today.getDate()]);
+                            var b = moment([ndate.getFullYear(), ndate.getMonth(), ndate.getDate()]);
+                            var diffDuration = moment.duration(b.diff(a));
+                            var days = diffDuration.as('days');
+                            if(Math.sign(days) == '-1'){
+                                this.catchmessage = 'Insurance Policy will be expired before appointment date.';
+                            }
+                            else if(days == 0) {
+                                this.catchmessage = 'Insurance Policy is expiring on appointment date. Inform Customer to renew it on time.';
+                            } else if(15 >= days > 0) {
+                                this.catchmessage = days +' day(s) left to expire the Insurance as compare to appointment date.';
+                            } else {
+                                this.catchmessage = '';
+                            }
+                        }
+                    })
+                    .catch();
+                axios.post('/api/appointments/get-users-quick-history', {
+                        user_id: this.form.user_id,
+                        date: this.form.date
+                    })
+                    .then((response) => {
+                        this.customer_appointments = response.data;
+                    });
+            },
+            /* onInputChange(text) {
+                if (text === '' || text === undefined) {
+                    return;
+                }
+                axios.get('/api/searchCustomer?q='+text)
+                    .then((data) => {
+                        this.filteredOptions = [{
+                            data: data.data  }] })
+                    .catch();
+            }, */
+        },
+        created() {
+            this.getTimeSlots();
+            this.setDate();
+            this.getPrimaryAssets();
+            this.getAllAssets();
+            this.setMonthlyAppointments();
+            Fire.$on('AfterCreate', () => {
+                this.setMonthlyAppointments();
+            });
+            this.getCustomers();
+        }
+    }
+</script>

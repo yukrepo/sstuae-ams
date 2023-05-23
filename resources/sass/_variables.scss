@@ -1,0 +1,114 @@
+
+// Body
+$body-bg: #f8fafc;
+
+// Typography
+$font-family-sans-serif: "Montserrat", sans-serif;
+$font-size-base: 0.725rem;
+$line-height-base: 1.6;
+
+// Colors
+$blue: #3490dc;
+$indigo: #6574cd;
+$opurple: #9561e2;
+$pink: #f66D9b;
+$red: #e3342f;
+$orange: #f6993f;
+$yellow: #F3C200;
+$green: #38c172;
+$teal: #4dc0b5;
+$cyan: #6cb2eb;
+$white: #FFFFFF;
+$black: #000000;
+$gray: #708090;
+$lightgray: #F4F4F4;
+$cgray: #CCCCCC;
+$odarkpurple:  #563D7C;
+$barblue: #0431B4;
+$tin: #f4f4f4;
+
+$themebgcolor: #4C5180;
+$themeTbgcolor:rgba(76, 81, 128, 0.95);
+$themeprimarycolor: #151E5F;
+$themesecondarycolor: #06A23F;
+$themetablegbg: rgba(6, 162, 63, 0.7);
+$themetablebg: rgba(6, 162, 63, 0.07);
+$themetablebg2: rgba(21, 30, 95, 0.07);
+$darkpurple: $themeprimarycolor;
+$purple:$themebgcolor;
+
+$spaceamounts: (0,1,2,3,4,5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 75, 100); // Adjust this to include the pixel amounts you need.
+$sides: (top, bottom, left, right); // Leave this variable alone
+
+@each $space in $spaceamounts {
+  @each $side in $sides {
+    .m-#{str-slice($side, 0, 1)}-#{$space} {
+      margin-#{$side}: #{$space}px !important;
+    }
+
+    .p-#{str-slice($side, 0, 1)}-#{$space} {
+      padding-#{$side}: #{$space}px !important;
+    }
+
+    .pf-#{$space} {
+        padding: #{$space}px #{$space}px #{$space}px #{$space}px !important;
+      }
+  }
+}
+
+$wamounts: (10, 15, 20, 25, 30, 33, 35, 40, 45, 50, 60, 75, 80, 85, 100); // Adjust this to include the pixel amounts you need.
+
+@each $wamount in $wamounts {
+    .w-#{$wamount} {
+        width: percentage($wamount/100);
+    }
+    .wf-#{$wamount} {
+        width: #{$wamount}px !important;
+    }
+}
+
+$wamounts2: (110, 115, 120, 125, 130, 135, 140, 145, 150, 175, 185, 200, 225, 250, 265, 270, 300); // Adjust this to include the pixel amounts you need.
+
+@each $wamount in $wamounts2 {
+    .wf-#{$wamount} {
+        width: #{$wamount}px !important;
+    }
+}
+
+.square-info, .round-info{background: $teal;}
+.square-primary, .round-primary{background: $blue;}
+.square-success, .round-success{background: $green;}
+.square-warning, .round-warning{background: $yellow;}
+.square-danger, .round-danger{background: $red;}
+.square-inverse, .round-inverse{background: $gray;}
+.bg-pink{background: $pink;}
+.bg-opurple{background: $opurple;}
+.bg-purple{background: $purple;}
+.btn-pink{background: $pink !important; color: $white !important;}
+.btn-purple{background: $purple !important; color: $white !important;}
+.btn-light-theme{background: $white !important; color: $themeprimarycolor !important;}
+.text-theme{color: $themeprimarycolor !important;}
+.text-theme:hover{color: $themesecondarycolor !important;}
+.btn-green-theme{background: $themesecondarycolor !important; color: $white !important;}
+.text-green-theme{color: $themesecondarycolor !important;}
+.btn-green-theme:hover{background: $themetablegbg !important; color: $white !important;}
+.btn-green-theme-outline{background: $white !important; color: $themesecondarycolor !important; border-color: $themesecondarycolor !important;}
+.btn-green-theme-outline:hover{background: $themetablegbg !important; color: $white !important;}
+.btn-dark-theme{background: $themeprimarycolor !important; color: $white !important;}
+.btn-second-theme{background: $white !important; color: $themesecondarycolor !important;}
+.btn-outline-purple{background: $white !important; color: $purple !important; border-color: $purple !important;}
+.text-pink{color: $pink;}
+.bg-teal{background: $teal;}
+.bg-lightpink{background: rgba(246, 109, 155, 0.21) !important;}
+.bg-lightteal{background: rgba(77, 192, 181, 0.21);}
+.bg-orange{background: $orange;}
+.bg-indigo{background: $indigo;}
+.bg-white{background: $white;}
+.bg-gray{background: $gray;}
+.bg-lightgray{background: $lightgray;}
+.text-white{color: $white;}
+.edit-line{background-color: #fdf3cc !important; color: #7e6500;}
+
+.btn-indigo{background: $indigo !important; color: $white !important;}
+.btn-teal{background: $teal !important; color: $white !important;}
+.visibility-hidden{visibility: hidden}
